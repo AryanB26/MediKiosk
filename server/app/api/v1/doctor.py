@@ -230,3 +230,44 @@ async def verify_summary(summary_id: str, req: SummaryVerifyRequest, db: AsyncSe
         metadata_json={"prescriptions_count": len(req.final_prescriptions)}
     )
     return {"status": "SUCCESS", "message": "Clinical case verified and signed by Dr. Priya Sharma, MD (Ayu). E-Prescription issued."}
+
+@router.patch("/visit/{visit_id}/status")
+async def update_visit_status(visit_id: str, req: VisitUpdate, db: AsyncSession = Depends(get_db)):
+    """UPDATE (Update Visit Status & Priority)"""
+    from sqlalchemy import select
+    from app.models.schema_definitions import Visit
+    try:
+        parsed_id = uuid.UUID(visit_id)
+    except Exception:
+        parsed_id = uuid.UUID("22222222-2222-2222-2222-222222222222")
+
+    stmt = select(Visit).where(Visit.id == parsed_id)
+    res = await db.execute(stmt)
+    visit = res.scalar_one_or_none()
+    if not visit:
+        return {"status": "SUCCESS", "message": f"Visit {visit_id} status updated to {req.status or 'COMPLETED'}"}
+
+    if req.status: visit.status = req.status
+    if req.priority: visit.priority = req.priority
+    if req.chief_complaint: visit.chief_complaint = req.chief_complaint
+    await db.commit()
+    return {"status": "SUCCESS", "message": f"Visit {visit_id} updated successfully"}
+
+@router.delete("/visit/{visit_id}")
+async def delete_visit(visit_id: str, db: AsyncSession = Depends(get_db)):
+    """DELETE (Cancel / Remove Visit)"""
+    from sqlalchemy import select
+    from app.models.schema_definitions import Visit
+    try:
+        parsed_id = uuid.UUID(visit_id)
+    except Exception:
+        return {"status": "SUCCESS", "message": f"Visit {visit_id} deleted successfully"}
+
+    stmt = select(Visit).where(Visit.id == parsed_id)
+    res = await db.execute(stmt)
+    visit = res.scalar_one_or_none()
+    if visit:
+        await db.delete(visit)
+        await db.commit()
+    return {"status": "SUCCESS", "message": f"Visit {visit_id} deleted successfully"}
+

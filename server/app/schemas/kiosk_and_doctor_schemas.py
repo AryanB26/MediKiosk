@@ -146,3 +146,34 @@ class SummaryVerifyRequest(BaseModel):
     chikitsa_sutra: List[str] = []
     pathya_regimen: List[str] = []
     apathya_regimen: List[str] = []
+
+# --- Patient & Visit CRUD Schemas ---
+class PatientCreate(BaseModel):
+    full_name: str = Field(..., example="Rameshwar Patil")
+    gender: Optional[str] = "Male"
+    age: Optional[int] = 62
+    phone_number: Optional[str] = "+91 98231 ****84"
+    address: Optional[str] = "Satara, Maharashtra"
+
+class PatientUpdate(BaseModel):
+    full_name: Optional[str] = None
+    gender: Optional[str] = None
+    age: Optional[int] = None
+    phone_number: Optional[str] = None
+    address: Optional[str] = None
+
+class PatientResponse(BaseModel):
+    id: UUID
+    full_name: str
+    gender: Optional[str] = None
+    age: Optional[int] = None
+    phone_number: Optional[str] = None
+    address: Optional[str] = None
+
+class VisitUpdate(BaseModel):
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    department: Optional[str] = None
+    room_number: Optional[str] = None
+    chief_complaint: Optional[str] = None
+

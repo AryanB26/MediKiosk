@@ -4,8 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from app.models.schema_definitions import Patient, PatientIdentity, Visit, VisitStatus, PriorityLevel, IdentityType
-from app.schemas.kiosk_and_doctor_schemas import IdentificationRequest, IdentificationResponse
-from app.core.audit import log_audit_event
+from typing import List
+from sqlalchemy import select
+from app.schemas.kiosk_and_doctor_schemas import (
+    IdentificationRequest, IdentificationResponse,
+    PatientCreate, PatientUpdate, PatientResponse
+)
 
 router = APIRouter(prefix="/patients", tags=["Patients & Identity"])
 
@@ -65,3 +69,71 @@ async def identify_patient(req: IdentificationRequest, db: AsyncSession = Depend
         age=patient.age,
         gender=patient.gender
     )
+
+# --- Full CRUD Endpoints ---
+
+@router.get("", response_model=List[PatientResponse])
+async def list_patients(db: AsyncSession = Depends(get_db)):
+    """READ (List All Patients)"""
+    stmt = select(Patient).order_by(Patient.created_at.desc())
+    res = await db.execute(stmt)
+    return res.scalars().all()
+
+@router.get("/{patient_id}", response_model=PatientResponse)
+async def get_patient(patient_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    """READ (Get Patient by ID)"""
+    stmt = select(Patient).where(Patient.id == patient_id)
+    res = await db.execute(stmt)
+    patient = res.scalar_one_or_none()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    return patient
+
+@router.post("", response_model=PatientResponse, status_code=201)
+async def create_patient(req: PatientCreate, db: AsyncSession = Depends(get_db)):
+    """CREATE (Create New Patient)"""
+    patient = Patient(
+        id=uuid.uuid4(),
+        full_name=req.full_name,
+        gender=req.gender,
+        age=req.age,
+        phone_number=req.phone_number,
+        address=req.address
+    )
+    db.add(patient)
+    await db.commit()
+    await db.refresh(patient)
+    return patient
+
+@router.put("/{patient_id}", response_model=PatientResponse)
+async def update_patient(patient_id: uuid.UUID, req: PatientUpdate, db: AsyncSession = Depends(get_db)):
+    """UPDATE (Update Patient Details)"""
+    stmt = select(Patient).where(Patient.id == patient_id)
+    res = await db.execute(stmt)
+    patient = res.scalar_one_or_none()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    
+    if req.full_name is not None: patient.full_name = req.full_name
+    if req.gender is not None: patient.gender = req.gender
+    if req.age is not None: patient.age = req.age
+    if req.phone_number is not None: patient.phone_number = req.phone_number
+    if req.address is not None: patient.address = req.address
+
+    await db.commit()
+    await db.refresh(patient)
+    return patient
+
+@router.delete("/{patient_id}")
+async def delete_patient(patient_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    """DELETE (Delete Patient)"""
+    stmt = select(Patient).where(Patient.id == patient_id)
+    res = await db.execute(stmt)
+    patient = res.scalar_one_or_none()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    
+    await db.delete(patient)
+    await db.commit()
+    return {"status": "SUCCESS", "message": f"Patient {patient_id} deleted successfully"}
+
