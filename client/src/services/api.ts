@@ -37,6 +37,8 @@ export const api = {
   // Doctor Queue & Case
   getDoctorQueue: () => fetchJson('/doctor/queue'),
   getCaseOverview: (visitId: string) => fetchJson(`/doctor/visit/${visitId}/case-overview`),
+  submitIntakePayload: (data: any) =>
+    fetchJson('/doctor/intake/submit', { method: 'POST', body: JSON.stringify(data) }),
   verifySummary: (summaryId: string, data: any) =>
     fetchJson(`/doctor/summary/${summaryId}/verify`, { method: 'POST', body: JSON.stringify(data) }),
 };

@@ -15,6 +15,15 @@ router = APIRouter(prefix="/doctor", tags=["Doctor Workspace"])
 llm_adapter = MockLLMAdapter()
 abdm_adapter = MockABDMAdapter()
 
+# Live In-Memory Intake Store to bridge Patient Kiosk & Doctor Dashboard dynamically
+INTAKE_STORE = {}
+
+@router.post("/intake/submit")
+async def submit_kiosk_intake(payload: dict, db: AsyncSession = Depends(get_db)):
+    visit_id = str(payload.get("visit_id", "22222222-2222-2222-2222-222222222222"))
+    INTAKE_STORE[visit_id] = payload
+    return {"status": "SUCCESS", "message": "Patient kiosk intake submitted to live doctor queue", "visit_id": visit_id}
+
 @router.get("/queue", response_model=List[QueueItem])
 async def get_doctor_queue(db: AsyncSession = Depends(get_db)):
     # Query database for recent visits
@@ -59,19 +68,26 @@ async def get_doctor_queue(db: AsyncSession = Depends(get_db)):
     patient_3_id = uuid.UUID("55555555-5555-5555-5555-555555555555")
     visit_3_id = uuid.UUID("66666666-6666-6666-6666-666666666666")
 
+    v1_id_str = "22222222-2222-2222-2222-222222222222"
+    live_v1 = INTAKE_STORE.get(v1_id_str, {})
+    
+    chief_complaint_v1 = live_v1.get("chief_complaint") or "Acute epigastric burning & chest heaviness (Duration: 2 days)"
+    priority_v1 = live_v1.get("triage_priority") or "RED_FLAG"
+    ayush_prakriti_v1 = live_v1.get("prakriti_selection") or "Pitta-Vata (Tikshnagni / Vidaha)"
+
     return [
         QueueItem(
             token_number="#024",
             visit_id=visit_1_id,
             patient_id=patient_1_id,
-            patient_name="Rameshwar Patil",
-            abha_number="91-4821-9920-11",
-            age_gender="62y / M",
-            chief_complaint="Acute epigastric burning & chest heaviness (Duration: 2 days)",
-            intake_mode="Voice Kiosk (Marathi)",
-            ayush_prakriti="Pitta-Vata (Tikshnagni / Vidaha)",
+            patient_name=live_v1.get("patient_name") or "Rameshwar Patil",
+            abha_number=live_v1.get("abha_number") or "91-4821-9920-11",
+            age_gender=live_v1.get("age_gender") or "62y / M",
+            chief_complaint=chief_complaint_v1,
+            intake_mode="Voice Kiosk (Hindi)",
+            ayush_prakriti=ayush_prakriti_v1,
             document_count=2,
-            triage_priority="RED_FLAG",
+            triage_priority=priority_v1,
             wait_time_mins=0,
             status="INTAKE_COMPLETED"
         ),
@@ -119,14 +135,21 @@ async def get_case_overview(visit_id: str, db: AsyncSession = Depends(get_db)):
     summary = await llm_adapter.generate_clinical_summary("Chest burning", {}, {}, {})
     abdm_records = await abdm_adapter.fetch_longitudinal_ehr("91-4821-9920-11")
 
+    # Fetch live kiosk intake submission if available
+    live_data = INTAKE_STORE.get(str(parsed_visit_id)) or INTAKE_STORE.get("22222222-2222-2222-2222-222222222222") or {}
+
+    spoken_raw = live_data.get("spoken_text") or "“मेरे सीने और पेट के ऊपरी हिस्से में कल शाम से जलन और दर्द है”"
+    body_part = live_data.get("selected_body_part") or "Upper Abdomen"
+    chief_cc = live_data.get("chief_complaint") or "Epigastric burning sensation (Urdhwaga Amlapitta) aggravated after sour/spicy meals. Retro-sternal burning since 3 weeks."
+    
     provenance_list = [
         ProvenanceItem(
             fact_key="Chief Complaint & Spoken Statement",
             source_type="AUDIO_SNIPPET",
             source_id="audio_snippet_0014s",
             confidence=0.991,
-            raw_snippet="“मेरे सीने और पेट के ऊपरी हिस्से में कल शाम से जलन और दर्द है”",
-            timestamp="10:35 AM Today"
+            raw_snippet=spoken_raw,
+            timestamp="Live Kiosk Voice Input"
         ),
         ProvenanceItem(
             fact_key="Digitized Tab Amlodipine 5mg",
@@ -141,8 +164,8 @@ async def get_case_overview(visit_id: str, db: AsyncSession = Depends(get_db)):
             source_type="TOUCH_INPUT",
             source_id="touch_map_upper_abdomen",
             confidence=1.0,
-            raw_snippet="User Tapped: Upper Abdomen (पेट का ऊपरी भाग / आमाशय)",
-            timestamp="10:38 AM Today"
+            raw_snippet=f"User Tapped: {body_part}",
+            timestamp="Live Kiosk Touch Input"
         ),
         ProvenanceItem(
             fact_key="ABDM Longitudinal History",
@@ -154,12 +177,14 @@ async def get_case_overview(visit_id: str, db: AsyncSession = Depends(get_db)):
         )
     ]
 
+    prakriti_val = live_data.get("prakriti_selection") or "Pitta 58% • Vata 32% • Kapha 10%"
+
     return ClinicalCaseOverview(
         visit_id=parsed_visit_id,
         patient_id=patient_id,
         token_number="#024",
-        patient_name="Rameshwar Patil",
-        abha_number="91-4821-9920-11",
+        patient_name=live_data.get("patient_name") or "Rameshwar Patil",
+        abha_number=live_data.get("abha_number") or "91-4821-9920-11",
         age=62,
         gender="Male",
         facility="Civil Hospital Satara (OPD Room 4)",
@@ -169,20 +194,25 @@ async def get_case_overview(visit_id: str, db: AsyncSession = Depends(get_db)):
             "spo2": "97%",
             "pulse": "78 bpm",
             "nadi_gati": "Sarpa-Manduka (P-V)",
-            "prakriti": "Pitta 58% • Vata 32%",
-            "koshtha_agni": "Krura / Tikshnagni"
+            "prakriti": prakriti_val,
+            "koshtha_agni": f"{live_data.get('koshtha_state', 'Krura Koshtha')} / {live_data.get('agni_state', 'Tikshnagni')}"
         },
-        chief_complaint="Epigastric burning sensation (Urdhwaga Amlapitta) aggravated after sour/spicy meals. Retro-sternal burning since 3 weeks.",
-        hpi=summary["chief_complaint_hpi"],
+        chief_complaint=chief_cc,
+        hpi={
+            "symptom_onset": live_data.get("onset_duration") or "Yesterday evening (~18 hrs duration)",
+            "character_location": f"{body_part}: {live_data.get('pain_severity', 'Severe Burning & Epigastric Pressure')}",
+            "aggravating_factors": live_data.get("aggravating_factors") or "Post-prandial (deep-fried feast intake)",
+            "hpi_narrative": f"Patient reports {live_data.get('pain_severity', 'severe retrosternal burning')} radiating to {body_part} accompanied by {live_data.get('associated_symptoms', 'acidic eructations')}. Onset: {live_data.get('onset_duration', 'yesterday evening')}. Aggravating factors: {live_data.get('aggravating_factors', 'worse post meals')}."
+        },
         regional_spoken_statement={
-            "original_text": "“खाने के बाद सीने में भारी जलन और खट्टी डकारें होती हैं। रात को नींद नहीं आती।”",
-            "translation_en": "Retrosternal burning sensation and severe sour eructations post meals. Sleep heavily disrupted."
+            "original_text": spoken_raw,
+            "translation_en": f"Patient spoke: '{spoken_raw}'. Primary concern localized to {body_part}."
         },
         ayush_assessment={
-            "prakriti": "Pitta 58% • Vata 32% • Kapha 10%",
+            "prakriti": prakriti_val,
             "vikriti": "Pitta Prakopa (Ushna/Tikshna) with Vata Anubandha",
-            "agni": "Tikshnagni -> Mandagni",
-            "koshtha": "Madhyama Tendency (Krura Tendency)",
+            "agni": live_data.get("agni_state") or "Tikshnagni -> Mandagni",
+            "koshtha": live_data.get("koshtha_state") or "Madhyama Tendency (Krura Tendency)",
             "ashtavidha": {
                 "nadi": "Sarpa-Manduka Gati (Pitta-Vataja)",
                 "mutra": "Pita Varna, Sadaha (Pittaja Mutra)",
@@ -204,7 +234,13 @@ async def get_case_overview(visit_id: str, db: AsyncSession = Depends(get_db)):
         medical_timeline=abdm_records,
         ai_draft_summary=summary,
         provenance_sources=provenance_list,
-        red_flag_alerts=summary["red_flag_warnings"],
+        red_flag_alerts=[
+            {
+                "title": f"Priority Alert: {live_data.get('associated_symptoms', 'Substernal Chest Discomfort')}",
+                "level": "AMBER_RED_OVERLAP" if live_data.get("triage_priority") == "RED_FLAG" or "RED FLAG" in str(live_data.get("associated_symptoms", "")) else "NORMAL",
+                "recommendation": "Immediate 12-Lead ECG advised before instituting classical Kamadudha Rasa or Sootshekhar Rasa to rule out silent myocardial ischemia vs Urdhvaga Amlapitta."
+            }
+        ] if (live_data.get("triage_priority") == "RED_FLAG" or "RED FLAG" in str(live_data.get("associated_symptoms", ""))) else summary["red_flag_warnings"],
         icd11_namaste_codes=[
             {
                 "type": "PRIMARY_AYUSH_DIAGNOSIS",

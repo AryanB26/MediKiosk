@@ -1017,6 +1017,23 @@ export const PatientKioskApp: React.FC = () => {
                 <button
                   onClick={async () => {
                     try {
+                      await api.submitIntakePayload({
+                        visit_id: visitId,
+                        patient_name: 'Rameshwar Patil',
+                        abha_number: '91-4821-9920-11',
+                        age_gender: '62y / M',
+                        selected_body_part: selectedBodyPart,
+                        onset_duration: onsetDuration,
+                        pain_severity: painSeverity,
+                        associated_symptoms: associatedSymptoms,
+                        aggravating_factors: aggravatingFactors,
+                        chief_complaint: `${selectedBodyPart}: ${painSeverity}. Onset: ${onsetDuration}. ${associatedSymptoms}.`,
+                        agni_state: agniState,
+                        koshtha_state: koshthaState,
+                        prakriti_selection: prakritiSelection,
+                        spoken_text: spokenText || '“मेरे सीने और पेट के ऊपरी हिस्से में कल शाम से जलन और दर्द है”',
+                        triage_priority: showRedFlagModal || associatedSymptoms.includes('RED FLAG') ? 'RED_FLAG' : 'NORMAL'
+                      });
                       const res = await api.identifyPatient({
                         id_type: intakeMethod === 'ABHA' ? 'ABHA_NUMBER' : 'MOBILE_OTP',
                         external_ref: '91-4821-9920-11',
