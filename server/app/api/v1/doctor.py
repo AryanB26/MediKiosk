@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from app.schemas.kiosk_and_doctor_schemas import (
-    QueueItem, ClinicalCaseOverview, ProvenanceItem, SummaryVerifyRequest
+    QueueItem, ClinicalCaseOverview, ProvenanceItem, SummaryVerifyRequest, VisitUpdate
 )
 from app.adapters.llm.mock_adapter import MockLLMAdapter
 from app.adapters.abdm.mock_adapter import MockABDMAdapter

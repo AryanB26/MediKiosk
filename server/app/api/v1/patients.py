@@ -10,6 +10,7 @@ from app.schemas.kiosk_and_doctor_schemas import (
     IdentificationRequest, IdentificationResponse,
     PatientCreate, PatientUpdate, PatientResponse
 )
+from app.core.audit import log_audit_event
 
 router = APIRouter(prefix="/patients", tags=["Patients & Identity"])
 
