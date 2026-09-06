@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #f8fafc;
+    color: #0f172a;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+/* Custom Elder-Friendly & Doctor Suite Utilities */
+.kiosk-card {
+  @apply bg-white rounded-2xl shadow-md border border-slate-200 transition-all duration-200 hover:shadow-lg;
+}
+
+.kiosk-btn-primary {
+  @apply bg-emerald-800 text-white font-semibold rounded-xl transition-all duration-150 hover:bg-emerald-900 active:scale-95 shadow-md flex items-center justify-center gap-2;
+}
+
+.kiosk-btn-secondary {
+  @apply bg-slate-100 text-slate-800 font-semibold rounded-xl border border-slate-300 transition-all duration-150 hover:bg-slate-200 active:scale-95 flex items-center justify-center gap-2;
+}
+
+.kiosk-btn-accent {
+  @apply bg-teal-600 text-white font-semibold rounded-xl transition-all duration-150 hover:bg-teal-700 active:scale-95 shadow-md flex items-center justify-center gap-2;
+}
+
+/* Custom Scrollbar for Doctor Dashboard */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
