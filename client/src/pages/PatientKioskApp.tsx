@@ -29,6 +29,7 @@ export const PatientKioskApp: React.FC = () => {
   const [agniState, setAgniState] = useState<string>('Tikshnagni (Excessive Appetite + Sour Regurgitation)');
   const [koshthaState, setKoshthaState] = useState<string>('Krura Koshtha (Hard Stool)');
   const [prakritiSelection, setPrakritiSelection] = useState<string>('Pitta-Vata (Pitta 58% • Vata 32%)');
+  const [showRedFlagModal, setShowRedFlagModal] = useState<boolean>(false);
 
   // Camera & Document Scan State
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
@@ -73,6 +74,7 @@ export const PatientKioskApp: React.FC = () => {
     } else if (currentSocratesStep === 4) {
       if (lower.includes('पसीना') || lower.includes('sweat') || lower.includes('बाएं') || lower.includes('left arm') || lower.includes('जबड़ा') || lower.includes('jaw')) {
         setAssociatedSymptoms('Radiation to Left Arm / Jaw + Sweating (RED FLAG)');
+        setShowRedFlagModal(true);
       } else if (lower.includes('खट्टी') || lower.includes('डकार') || lower.includes('acid') || lower.includes('burp') || lower.includes('sour')) {
         setAssociatedSymptoms('Acidic Regurgitation & Sour Burps (Vidagdha Amlodgara)');
       } else if (lower.includes('जी') || lower.includes('मिचलाना') || lower.includes('nausea') || lower.includes('bloat')) {
@@ -1060,6 +1062,38 @@ export const PatientKioskApp: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Priority Red-Flag Emergency Triage Alert Modal */}
+      {showRedFlagModal && (
+        <div className="fixed inset-0 bg-red-950/90 z-50 flex items-center justify-center p-8 backdrop-blur-sm animate-fadeIn select-none">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-8 text-center space-y-6 border-4 border-red-600 shadow-2xl">
+            <div className="w-20 h-20 bg-red-600 text-white rounded-full mx-auto flex items-center justify-center animate-bounce shadow-lg">
+              <AlertTriangle className="w-12 h-12" />
+            </div>
+            <div>
+              <span className="bg-red-600 text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                EMERGENCY PRIORITY TRIAGE TRIGGERED
+              </span>
+              <h2 className="text-3xl font-black text-red-950 mt-3">High Clinical Priority Alert</h2>
+              <p className="text-red-900 text-base font-semibold mt-2">
+                Cardiological / Acute Symptoms Flagged: Left Arm Pain, Jaw Radiation & Autonomic Sweating detected.
+              </p>
+            </div>
+            <div className="bg-red-50 border border-red-300 p-4 rounded-2xl text-sm font-bold text-red-900 text-left space-y-1">
+              <p className="flex items-center gap-2">🚨 <strong>RECOMMENDED IMMEDIATE ACTION:</strong></p>
+              <p>Please do NOT wait in the regular OPD queue. Show this screen to the nearest Kiosk Sahayak or Nurse at <strong>Emergency ECG Room 1B</strong> immediately.</p>
+            </div>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowRedFlagModal(false)}
+                className="w-full bg-red-700 hover:bg-red-800 text-white font-black py-4 rounded-2xl text-lg shadow-md transition-all"
+              >
+                I Understand — Fast-Track to Triage Desk
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sticky Kiosk Footer Controls */}
       <footer className="bg-slate-900 text-white px-8 py-4 flex items-center justify-between border-t border-slate-800">

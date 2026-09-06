@@ -801,6 +801,34 @@ export const DoctorDashboardApp: React.FC = () => {
                       ))}
                     </div>
                   </div>
+
+                  {/* Dashavidha Pariksha 10-Parameter Matrix (PS Module A Requirement) */}
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                    <h3 className="font-extrabold text-slate-900 text-lg border-b pb-3 flex items-center justify-between">
+                      <span>Dashavidha Pariksha (Ten-Fold Comprehensive Clinical Assessment)</span>
+                      <span className="bg-amber-100 text-amber-900 text-xs font-bold px-3 py-1 rounded-full">Module A Standard</span>
+                    </h3>
+                    <div className="grid grid-cols-5 gap-3 text-xs">
+                      {[
+                        { title: '1. PRAKRITI', val: 'Pitta-Vata', desc: 'Pitta 58% • Vata 32%' },
+                        { title: '2. VIKRITI', val: 'Pitta Prakopa', desc: 'Vidahi & Ushna Vriddhi' },
+                        { title: '3. SARA', val: 'Rakta-Meda', desc: 'Moderate tissue essence' },
+                        { title: '4. SAMHANANA', val: 'Madhyama', desc: 'Compact muscle tone' },
+                        { title: '5. PRAMANA', val: 'Madhyama', desc: 'Normal body proportion' },
+                        { title: '6. SATMYA', val: 'Sarva-Rasa', desc: 'Accustomed to mixed diet' },
+                        { title: '7. SATTVA', val: 'Pravara', desc: 'Resilient mental strength' },
+                        { title: '8. AHARA SHAKTI', val: 'Tikshnagni', desc: 'High intake, rapid digestion' },
+                        { title: '9. VYAYAMA', val: 'Madhyama', desc: 'Moderate physical capacity' },
+                        { title: '10. VAYA', val: 'Vardhakya', desc: 'Geriatric (62 Years)' }
+                      ].map((item, index) => (
+                        <div key={index} className="p-3 bg-amber-50/60 rounded-xl border border-amber-200/80 space-y-0.5">
+                          <span className="font-extrabold text-amber-900 text-[10px] uppercase tracking-wide block">{item.title}</span>
+                          <h4 className="font-bold text-slate-900 text-xs">{item.val}</h4>
+                          <p className="text-slate-600 text-[10px]">{item.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
 
